@@ -1,0 +1,38 @@
+"use client";
+
+interface LimitReachedModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export default function LimitReachedModal({ isOpen, onClose }: LimitReachedModalProps) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-neutral-900 rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200 dark:border-neutral-700">
+
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    Storage Limit Reached
+                </h3>
+
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    You've reached your 10 MB storage limit. Delete some links to free up space and continue saving new ones.
+                </p>
+
+                <button
+                    onClick={onClose}
+                    className="w-full px-4 py-2 bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-neutral-700 transition-colors"
+                >
+                    Got it
+                </button>
+            </div>
+        </div>
+    );
+}
