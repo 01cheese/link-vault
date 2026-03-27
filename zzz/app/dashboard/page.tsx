@@ -21,23 +21,8 @@ export default function Dashboard() {
     const { user, loading: authLoading, logout } = useAuth()
     const { usedBytes, limitBytes, loading: storageLoading, refresh: refreshStorage } = useStorageQuota(user?.id)
 
-    const {
-        collections,
-        loadCollections,
-        addCollection,
-        updateCollection,
-        deleteCollection
-    } = useCollections(user?.id)
-
-    const {
-        links,
-        loadLinks,
-        addLink,
-        updateLink,
-        deleteLink,
-        deleteLinks,
-        toggleFavorite
-    } = useLinks(user?.id, refreshStorage)
+    const { collections, loadCollections, addCollection, updateCollection, deleteCollection } = useCollections(user?.id)
+    const { links, loadLinks, addLink, updateLink, deleteLink, deleteLinks, toggleFavorite } = useLinks(user?.id, refreshStorage)
 
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
@@ -56,89 +41,44 @@ export default function Dashboard() {
     const [showTagFilter, setShowTagFilter] = useState(false)
     const [showLimitModal, setShowLimitModal] = useState(false)
     const [isAddingLink, setIsAddingLink] = useState(false)
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
     const [newLink, setNewLink] = useState({ url: "", title: "", tags: "" })
     const [newCollection, setNewCollection] = useState({ name: "", icon: "📁" })
 
     useEffect(() => {
-        if (user) {
-            loadCollections()
-            loadLinks()
-        }
+        if (user) { loadCollections(); loadLinks() }
     }, [user])
-
-    // ================= LIMIT CHECK =================
 
     const canAddLink = () => usedBytes < limitBytes
 
-    // ================= HANDLERS =================
-
     const handleAddLinkClick = () => {
-        if (!canAddLink()) {
-            setShowLimitModal(true)
-            return
-        }
+        if (!canAddLink()) { setShowLimitModal(true); return }
         setShowAddLink(true)
     }
 
     const handleAddLink = async () => {
-        if (!newLink.url.trim()) {
-            alert("Please enter a URL")
-            return
-        }
-
+        if (!newLink.url.trim()) { alert("Please enter a URL"); return }
         const normalized = normalizeUrl(newLink.url)
-
-        if (!validateUrl(normalized)) {
-            alert("Please enter a valid URL")
-            return
-        }
-
+        if (!validateUrl(normalized)) { alert("Please enter a valid URL"); return }
         setIsAddingLink(true)
-
         try {
-            const result = await addLink(
-                normalized,
-                newLink.title,
-                newLink.tags,
-                selectedCollection
-            )
-
+            const result = await addLink(normalized, newLink.title, newLink.tags, selectedCollection)
             if (result === "LIMIT_REACHED") {
-                setShowAddLink(false)
-                setShowLimitModal(true)
-                await refreshStorage()
-                return
+                setShowAddLink(false); setShowLimitModal(true); await refreshStorage(); return
             }
-
             if (result) {
-                setShowAddLink(false)
-                setNewLink({ url: "", title: "", tags: "" })
-                await refreshStorage()
-            } else {
-                alert("Failed to add link. Please try again.")
-            }
-        } catch {
-            alert("An error occurred while adding the link.")
-        } finally {
-            setIsAddingLink(false)
-        }
+                setShowAddLink(false); setNewLink({ url: "", title: "", tags: "" }); await refreshStorage()
+            } else { alert("Failed to add link. Please try again.") }
+        } catch { alert("An error occurred while adding the link.") }
+        finally { setIsAddingLink(false) }
     }
 
     const handleAddCollection = async () => {
-        if (!newCollection.name.trim()) {
-            alert("Please enter a collection name")
-            return
-        }
-
+        if (!newCollection.name.trim()) { alert("Please enter a collection name"); return }
         const result = await addCollection(newCollection.name, newCollection.icon)
-
-        if (result) {
-            setShowAddCollection(false)
-            setNewCollection({ name: "", icon: "📁" })
-        } else {
-            alert("Failed to create collection")
-        }
+        if (result) { setShowAddCollection(false); setNewCollection({ name: "", icon: "📁" }) }
+        else { alert("Failed to create collection") }
     }
 
     const handleUpdateCollection = async (id: string, name: string, icon: string) => {
@@ -149,77 +89,45 @@ export default function Dashboard() {
 
     const handleDeleteCollection = async (id: string) => {
         const linksInCollection = links.filter(l => l.collection_id === id).length
-
         const confirmed = confirm(
             linksInCollection > 0
                 ? `This collection contains ${linksInCollection} link(s). Delete anyway? Links will not be deleted.`
                 : "Delete this collection?"
         )
-
         if (!confirmed) return
-
         const success = await deleteCollection(id)
-
-        if (success && selectedCollection === id) {
-            setSelectedCollection(null)
-        }
+        if (success && selectedCollection === id) setSelectedCollection(null)
     }
 
     const handleDeleteLink = async (id: string) => {
         const confirmed = confirm("Are you sure you want to delete this link?")
         if (!confirmed) return
-        await deleteLink(id)
-        await refreshStorage()
+        await deleteLink(id); await refreshStorage()
     }
 
     const handleDeleteSelected = async () => {
-        if (selectedLinks.length === 0) {
-            alert("No links selected")
-            return
-        }
-
+        if (selectedLinks.length === 0) { alert("No links selected"); return }
         const confirmed = confirm(`Delete ${selectedLinks.length} link(s)?`)
         if (!confirmed) return
-
-        await deleteLinks(selectedLinks)
-        setSelectedLinks([])
-        await refreshStorage()
+        await deleteLinks(selectedLinks); setSelectedLinks([]); await refreshStorage()
     }
 
     const handleUpdateTitle = async (id: string, title: string) => {
         if (!title.trim()) return
-        await updateLink(id, { title: title.trim() })
-        setEditingId(null)
-    }
-
-    const handleToggleFavorite = async (link: any) => {
-        await toggleFavorite(link)
+        await updateLink(id, { title: title.trim() }); setEditingId(null)
     }
 
     const toggleSelect = (id: string) => {
-        setSelectedLinks(prev =>
-            prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
-        )
-    }
-
-    const selectAll = () => {
-        if (selectedLinks.length === filteredLinks.length && filteredLinks.length > 0) {
-            setSelectedLinks([])
-        } else {
-            setSelectedLinks(filteredLinks.map(l => l.id))
-        }
+        setSelectedLinks(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id])
     }
 
     const allTags = Array.from(new Set(links.flatMap(link => link.tags || []))).sort()
 
     const toggleTagFilter = (tag: string) => {
-        setSelectedTags(prev =>
-            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-        )
+        setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
     }
 
     const clearTagFilters = () => setSelectedTags([])
-
     const getTagCount = (tag: string) => links.filter(l => l.tags?.includes(tag)).length
 
     const filteredLinks = links.filter(link => {
@@ -228,11 +136,9 @@ export default function Dashboard() {
             link.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
             link.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             link.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-
         const matchesCollection = !selectedCollection || link.collection_id === selectedCollection
         const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => link.tags?.includes(tag))
         const matchesFavorites = !showFavoritesOnly || link.is_favorite
-
         return matchesSearch && matchesCollection && matchesTags && matchesFavorites
     })
 
@@ -243,21 +149,25 @@ export default function Dashboard() {
         return 0
     })
 
+    const selectAll = () => {
+        if (selectedLinks.length === filteredLinks.length && filteredLinks.length > 0) setSelectedLinks([])
+        else setSelectedLinks(filteredLinks.map(l => l.id))
+    }
+
     const handleExportJSON = () => {
-        const filename = `links-export-${new Date().toISOString().split('T')[0]}.json`
-        exportToJSON(sortedLinks, filename)
+        exportToJSON(sortedLinks, `links-export-${new Date().toISOString().split('T')[0]}.json`)
     }
 
     if (authLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-neutral-950">
-                <div className="text-lg">Loading...</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
+                <div style={{ fontSize: 14, color: "var(--text-muted)" }}>Loading…</div>
             </div>
         )
     }
 
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-neutral-950 transition-colors">
+        <div style={{ display: "flex", height: "100dvh", background: "var(--bg)", overflow: "hidden" }}>
 
             <Sidebar
                 userEmail={user?.email}
@@ -280,9 +190,11 @@ export default function Dashboard() {
                 storageUsedBytes={usedBytes}
                 storageLimitBytes={limitBytes}
                 storageLoading={storageLoading}
+                mobileOpen={mobileSidebarOpen}
+                onMobileClose={() => setMobileSidebarOpen(false)}
             />
 
-            <main className="flex-1 p-6 overflow-y-auto relative">
+            <main style={{ flex: 1, padding: "20px 16px", overflowY: "auto", minWidth: 0 }}>
 
                 <TopBar
                     searchQuery={searchQuery}
@@ -300,6 +212,7 @@ export default function Dashboard() {
                     onSortChange={setSort}
                     view={view}
                     onViewChange={setView}
+                    onMenuOpen={() => setMobileSidebarOpen(true)}
                 />
 
                 {showTagFilter && (
@@ -323,36 +236,33 @@ export default function Dashboard() {
                 />
 
                 {sortedLinks.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                        <p className="text-lg mb-2">No links found</p>
-                        <p className="text-sm">
+                    <div style={{ textAlign: "center", padding: "48px 16px", color: "var(--text-muted)" }}>
+                        <p style={{ fontSize: 15, marginBottom: 6 }}>No links found</p>
+                        <p style={{ fontSize: 12 }}>
                             {selectedTags.length > 0 || selectedCollection || searchQuery
                                 ? "Try adjusting your filters"
                                 : "Add your first link to get started"}
                         </p>
                     </div>
                 ) : (
-                    <div className={view === "grid" ? "grid md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
+                    <div className={view === "grid" ? "links-grid" : "links-list"}>
                         {sortedLinks.map(link => (
                             <LinkCardEnhanced
                                 key={link.id}
                                 link={link}
-                                onToggleFavorite={() => handleToggleFavorite(link)}
+                                onToggleFavorite={() => toggleFavorite(link)}
                                 onDelete={() => handleDeleteLink(link.id)}
                                 onTagClick={toggleTagFilter}
                             />
                         ))}
                     </div>
                 )}
-
             </main>
 
             <AddLinkModal
                 isOpen={showAddLink}
                 onClose={() => { setShowAddLink(false); setNewLink({ url: "", title: "", tags: "" }) }}
-                url={newLink.url}
-                title={newLink.title}
-                tags={newLink.tags}
+                url={newLink.url} title={newLink.title} tags={newLink.tags}
                 onUrlChange={(url) => setNewLink({ ...newLink, url })}
                 onTitleChange={(title) => setNewLink({ ...newLink, title })}
                 onTagsChange={(tags) => setNewLink({ ...newLink, tags })}
@@ -365,18 +275,13 @@ export default function Dashboard() {
             <AddCollectionModal
                 isOpen={showAddCollection}
                 onClose={() => { setShowAddCollection(false); setNewCollection({ name: "", icon: "📁" }) }}
-                name={newCollection.name}
-                icon={newCollection.icon}
+                name={newCollection.name} icon={newCollection.icon}
                 onNameChange={(name) => setNewCollection({ ...newCollection, name })}
                 onIconChange={(icon) => setNewCollection({ ...newCollection, icon })}
                 onSubmit={handleAddCollection}
             />
 
-            <LimitReachedModal
-                isOpen={showLimitModal}
-                onClose={() => setShowLimitModal(false)}
-            />
-
+            <LimitReachedModal isOpen={showLimitModal} onClose={() => setShowLimitModal(false)} />
         </div>
     )
 }
