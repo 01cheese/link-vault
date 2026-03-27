@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus, Tag as TagIcon, Trash2, Download, LayoutGrid, List } from "lucide-react"
+import { Search, Plus, Tag as TagIcon, Trash2, Download, LayoutGrid, List, Menu } from "lucide-react"
 
 export type ViewMode = "grid" | "list"
 
@@ -20,6 +20,7 @@ type TopBarProps = {
     onSortChange: (s: string) => void
     view: ViewMode
     onViewChange: (v: ViewMode) => void
+    onMenuOpen: () => void
 }
 
 function Btn({
@@ -32,7 +33,7 @@ function Btn({
             onClick={onClick}
             style={{
                 display: "flex", alignItems: "center", gap: 5,
-                padding: "0 10px", height: 30, borderRadius: "var(--radius-sm)",
+                padding: "0 10px", height: 32, borderRadius: "var(--radius-sm)",
                 border: `1px solid ${danger ? "rgba(239,68,68,.25)" : active ? "rgba(59,130,246,.3)" : "var(--border)"}`,
                 background: danger ? "var(--danger-dim)" : active ? "var(--accent-dim)" : "var(--surface-2)",
                 color: danger ? "var(--danger)" : active ? "var(--accent)" : "var(--text-soft)",
@@ -53,16 +54,28 @@ export default function TopBar({
     onToggleTagFilter, selectedTagsCount, showTagFilter,
     onSelectAll, selectedLinksCount, filteredLinksCount,
     onDeleteSelected, onExportJSON, sort, onSortChange,
-    view, onViewChange,
+    view, onViewChange, onMenuOpen,
 }: TopBarProps) {
-
     return (
         <div style={{ marginBottom: 20 }}>
-
-            {/* Row 1 */}
+            {/* Row 1: hamburger + search + add */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                {/* Hamburger - mobile only */}
+                <button
+                    className="hamburger-btn"
+                    onClick={onMenuOpen}
+                    style={{
+                        width: 36, height: 36, border: "1px solid var(--border)",
+                        borderRadius: "var(--radius-sm)", background: "var(--surface-2)",
+                        color: "var(--text-soft)", display: "flex", alignItems: "center",
+                        justifyContent: "center", cursor: "pointer", flexShrink: 0,
+                    }}
+                >
+                    <Menu size={16} />
+                </button>
+
                 {/* Search */}
-                <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
+                <div style={{ position: "relative", flex: 1 }}>
                     <Search size={13} style={{
                         position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
                         color: "var(--text-muted)", pointerEvents: "none",
@@ -75,14 +88,14 @@ export default function TopBar({
                             width: "100%", paddingLeft: 32, paddingRight: 12, height: 36,
                             background: "var(--surface-2)", border: "1px solid var(--border)",
                             borderRadius: "var(--radius)", fontSize: 13, color: "var(--text)",
-                            outline: "none", fontWeight: 400, transition: "border-color .15s",
+                            outline: "none", transition: "border-color .15s",
                         }}
                         onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
                         onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
                     />
                 </div>
 
-                {/* Add link CTA */}
+                {/* Add link */}
                 <button
                     onClick={onAddLink}
                     style={{
@@ -96,13 +109,12 @@ export default function TopBar({
                     onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
                 >
                     <Plus size={14} strokeWidth={2.5} />
-                    Add Link
+                    <span className="add-link-text">Add Link</span>
                 </button>
             </div>
 
-            {/* Row 2 */}
+            {/* Row 2: filters + tools */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-
                 <Btn onClick={onToggleTagFilter} active={selectedTagsCount > 0 || showTagFilter}>
                     <TagIcon size={11} />
                     Tags
@@ -127,20 +139,18 @@ export default function TopBar({
 
                 <Btn onClick={onExportJSON}>
                     <Download size={11} />
-                    Export
+                    <span className="export-text">Export</span>
                 </Btn>
 
                 <div style={{ flex: 1 }} />
 
-                {/* Sort */}
                 <select
                     value={sort}
                     onChange={e => onSortChange(e.target.value)}
                     style={{
-                        height: 30, padding: "0 8px", borderRadius: "var(--radius-sm)",
+                        height: 32, padding: "0 8px", borderRadius: "var(--radius-sm)",
                         background: "var(--surface-2)", border: "1px solid var(--border)",
-                        color: "var(--text-soft)", fontSize: 11, fontWeight: 500, cursor: "pointer",
-                        outline: "none",
+                        color: "var(--text-soft)", fontSize: 11, fontWeight: 500, cursor: "pointer", outline: "none",
                     }}
                 >
                     <option value="newest">Newest</option>
@@ -148,17 +158,13 @@ export default function TopBar({
                     <option value="title">A → Z</option>
                 </select>
 
-                {/* View toggle */}
-                <div style={{
-                    display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden",
-                    border: "1px solid var(--border)",
-                }}>
-                    {([["grid", LayoutGrid], ["list", List]] as const).map(([mode, Icon]) => (
+                <div style={{ display: "flex", borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border)" }}>
+                    {([ ["grid", LayoutGrid], ["list", List] ] as const).map(([mode, Icon]) => (
                         <button
                             key={mode}
                             onClick={() => onViewChange(mode as ViewMode)}
                             style={{
-                                width: 30, height: 30, border: "none", cursor: "pointer",
+                                width: 32, height: 32, border: "none", cursor: "pointer",
                                 display: "flex", alignItems: "center", justifyContent: "center",
                                 background: view === mode ? "var(--accent)" : "var(--surface-2)",
                                 color: view === mode ? "#fff" : "var(--text-muted)",
